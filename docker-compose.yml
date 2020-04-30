@@ -1,0 +1,65 @@
+version: '3'
+
+services:
+  webjommla:
+    image: ${REGISTRY_HOST}/myjoomlav3:latest
+    build:
+      context: "./bin/joomla3"
+    container_name: 'webjommla'
+    restart: 'always'
+    ports:
+      - "${JOOMLA_HP}:80"
+      - "${JOOMLA_HPS}:443"
+    links:
+      - mysql
+    volumes:
+      - ${DOCUMENT_ROOT-./joomla3-www}:/var/www/html
+      #- ${JOOMLA_DATA-./joomla3-data-files}:/var/www
+      - ${PHP_INI-./config/php/php.ini}:/usr/local/etc/php/php.ini
+      - ${VHOSTS_DIR-./config/vhosts}:/etc/apache2/sites-enabled
+      - ${LOG_DIR-./joomla3-logs/apache2}:/var/log/apache2
+
+  mysql:
+    image: ${REGISTRY_HOST}/mysqljoomla3:latest
+    build:
+      context: "./bin/mysql"
+    container_name: 'mysql'
+    restart: 'always'
+    ports:
+      - "${MYSQL_HPORT}:3306"
+    command: [
+        '--default_authentication_plugin=mysql_native_password',
+        '--character-set-server=utf8mb4',
+        '--collation-server=utf8mb4_unicode_ci'
+    ]
+    volumes:
+      - ${MYSQL_DATA_DIR-./data/mysql}:/var/lib/mysql
+      - ${MYSQL_LOG_DIR-./logs/mysql}:/var/log/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+
+  phpmyadmin:
+    image: ${REGISTRY_HOST}/phpmyadmin:latest
+    build:
+      context: "./bin/phpmyadmin"
+    container_name: 'phpmyadmin'
+    links:
+      - mysql
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: ${MYSQL_USER}
+      PMA_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - '${PMA_HP}:80'
+    volumes:
+      - /sessions
+
+#volumes:
+#  db_data:
